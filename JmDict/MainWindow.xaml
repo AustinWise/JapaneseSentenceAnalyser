@@ -2,48 +2,51 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MainWindow" Height="350" Width="525">
-	<ListBox Name="lv">
-		<ListBox.ItemTemplate>
-			<DataTemplate>
-				<Grid>
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition />
-						<ColumnDefinition />
-						<ColumnDefinition />
-					</Grid.ColumnDefinitions>
-					<Grid.RowDefinitions>
-						<RowDefinition />
-						<RowDefinition />
-					</Grid.RowDefinitions>
-					
-					<Label FontWeight="Bold" Content="Kanji" Grid.Column="0" Grid.Row="0" />
-					<ListBox ItemsSource="{Binding k_ele}" Grid.Column="0" Grid.Row="1">
-						<ListBox.ItemTemplate>
-							<DataTemplate>
-								<TextBlock Text="{Binding keb}" />
-							</DataTemplate>
-						</ListBox.ItemTemplate>
-					</ListBox>
-					
-					<Label FontWeight="Bold" Content="Reading" Grid.Column="1" Grid.Row="0" />
-					<ListBox ItemsSource="{Binding r_ele}" Grid.Column="1" Grid.Row="1">
-						<ListBox.ItemTemplate>
-							<DataTemplate>
-								<TextBlock Text="{Binding reb}" />
-							</DataTemplate>
-						</ListBox.ItemTemplate>
-					</ListBox>
-					
-					<Label FontWeight="Bold" Content="Meaning" Grid.Column="2" Grid.Row="0" />
-					<ListBox ItemsSource="{Binding Meaning}" Grid.Column="3" Grid.Row="1">
-						<ListBox.ItemTemplate>
-							<DataTemplate>
-								<TextBlock Text="{Binding}" />
-							</DataTemplate>
-						</ListBox.ItemTemplate>
-					</ListBox>
-				</Grid>
-			</DataTemplate>
-		</ListBox.ItemTemplate>
-	</ListBox>
+	<DockPanel>
+		<TextBox Name="txtInput" TextChanged="txtInput_TextChanged" DockPanel.Dock="Top"/>
+		<ListBox Name="lv" DockPanel.Dock="Bottom">
+			<ListBox.ItemTemplate>
+				<DataTemplate>
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition />
+							<ColumnDefinition />
+							<ColumnDefinition />
+						</Grid.ColumnDefinitions>
+						<Grid.RowDefinitions>
+							<RowDefinition />
+							<RowDefinition />
+						</Grid.RowDefinitions>
+
+						<Label FontWeight="Bold" Content="Kanji" Grid.Column="0" Grid.Row="0" />
+						<ListBox ItemsSource="{Binding k_ele}" Grid.Column="0" Grid.Row="1">
+							<ListBox.ItemTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding keb}" />
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
+
+						<Label FontWeight="Bold" Content="Reading" Grid.Column="1" Grid.Row="0" />
+						<ListBox ItemsSource="{Binding r_ele}" Grid.Column="1" Grid.Row="1">
+							<ListBox.ItemTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding reb}" />
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
+
+						<Label FontWeight="Bold" Content="Meaning" Grid.Column="2" Grid.Row="0" />
+						<ListBox ItemsSource="{Binding Meaning}" Grid.Column="3" Grid.Row="1">
+							<ListBox.ItemTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding}" />
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
+					</Grid>
+				</DataTemplate>
+			</ListBox.ItemTemplate>
+		</ListBox>
+	</DockPanel>
 </Window>

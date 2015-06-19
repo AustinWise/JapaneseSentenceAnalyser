@@ -38,14 +38,34 @@ namespace JmDict
                         return "noun (common) (futsuumeishi)";
                     else if (n.PosSub1 == "接尾")
                         return "noun, used as a suffix";
+                    else if (n.PosSub1 == "サ変接続")
+                        return "noun or participle which takes the aux. verb suru"; //TODO: need to confirm
+                    else if (n.PosSub1 == "形容動詞語幹")
+                        return "adjectival nouns or quasi-adjectives (keiyodoshi)";
                     return null;
                 case "動詞": //verb
                     if (n.ConjugatedForm == "一段")
                         return "Ichidan verb";
                     else if (n.ConjugatedForm.StartsWith("五段・"))
                     {
-                        switch (n.ConjugatedForm.Substring(3))
+                        switch (n.ConjugatedForm.Substring(3, 2))
                         {
+                            case "ワ行":
+                                return "Godan verb with `u' ending";
+                            case "カ行":
+                                return "Godan verb with `ku' ending";
+                            case "ガ行":
+                                return "Godan verb with `gu' ending";
+                            case "サ行":
+                                return "Godan verb with `su' ending";
+                            case "タ行":
+                                return "Godan verb with `tsu' ending";
+                            case "ナ行":
+                                return "Godan verb with `nu' ending";
+                            case "バ行":
+                                return "Godan verb with `bu' ending";
+                            case "マ行":
+                                return "Godan verb with `mu' ending";
                             case "ラ行":
                                 return "Godan verb with `ru' ending";
                         }
@@ -53,65 +73,50 @@ namespace JmDict
                     return null;
                 case "記号": //symbol
                     return null;
+                case "助動詞":
+                    return "auxiliary verb";
+                case "形容詞":
+                    return "adjective (keiyoushi)";
                 default:
                     return null;
             }
+        }
+
+        Dictionary<string, List<entry>> kLookup, rLookup;
+        Dictionary<char, char> mKataToHira = new Dictionary<char, char>();
+
+        string fromKataToHira(string maybeKata)
+        {
+            char[] chars = maybeKata.ToCharArray();
+            for (int i = 0; i < chars.Length; i++)
+            {
+                char hira;
+                if (mKataToHira.TryGetValue(chars[i], out hira))
+                    chars[i] = hira;
+            }
+            return new string(chars);
         }
 
         public MainWindow()
         {
             InitializeComponent();
 
-            var kLookup = CreateLookup(e => e.k_ele, k => k.keb);
-            var rLookup = CreateLookup(e => e.r_ele, r => r.reb);
-
-            var split = mTagger.Parse("私は亀に興味があります。");
-            var niceEntries = new List<MyEntry>();
-
-            foreach (var morph in split)
+            foreach (var line in Properties.Resources.TheKana.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                string jmPos = GetJmPartOfSpeach(morph);
-                if (jmPos == null)
+                if (line[0] == '#')
                     continue;
-
-                List<entry> ent;
-                if (kLookup.TryGetValue(morph.BaseForm, out ent) || rLookup.TryGetValue(morph.BaseForm, out ent))
-                {
-                    var reading = KanaConverter.KatakanaToHiragana(morph.Reading);
-                    var entriesWithCorrectReading = ent.Where(e => e.r_ele != null && e.r_ele.Any(r => r.reb == reading)).ToList();
-
-                    if (entriesWithCorrectReading.Count == 0)
-                        continue;
-
-                    var entriesWithTheCorrectPartOfSpeech = entriesWithCorrectReading.Where(e => e.sense.Any(s => s.pos != null && s.pos.Any(p => p.StartsWith(jmPos)))).ToList();
-
-                    if (entriesWithTheCorrectPartOfSpeech.Count == 1)
-                    {
-                        var n = entriesWithTheCorrectPartOfSpeech[0];
-                        var e = new MyEntry();
-                        e.k_ele = n.k_ele;
-                        e.r_ele = n.r_ele;
-                        e.Meaning = n.sense
-                            .Where(s => s.pos != null && s.pos.Any(p => p.StartsWith(jmPos)))
-                            .SelectMany(s => s.gloss.SelectMany(g => g.Text))
-                            .ToArray();
-                        niceEntries.Add(e);
-                    }
-                    else if (entriesWithCorrectReading.Count > 1)
-                    {
-                        //todo, support multiple meanings in gui
-                    }
-
-                }
+                string[] splits = line.Split(',');
+                string romanji = splits[0];
+                string hiragana = splits[1];
+                string katakana = splits[2];
+                mKataToHira.Add(katakana[0], hiragana[0]);
             }
 
-            lv.ItemsSource = niceEntries;
+            kLookup = CreateLookup(e => e.k_ele, k => k.keb);
+            rLookup = CreateLookup(e => e.r_ele, r => fromKataToHira(r.reb));
 
             //Stats(e => e.k_ele, k => k.keb);
             //Stats(e => e.r_ele, r => r.reb);
-
-
-            Console.WriteLine();
         }
 
         static Dictionary<string, List<entry>> CreateLookup<T>(Func<entry, T[]> getReadings, Func<T, string> getReadingText)
@@ -164,6 +169,75 @@ namespace JmDict
             public k_ele[] k_ele { get; set; }
             public r_ele[] r_ele { get; set; }
             public string[] Meaning { get; set; }
+        }
+
+        private void txtInput_TextChanged(object sender, TextChangedEventArgs _)
+        {
+            var split = mTagger.Parse(txtInput.Text);
+            var niceEntries = new List<MyEntry>();
+
+            foreach (var morph in split)
+            {
+                string jmPos = GetJmPartOfSpeach(morph);
+                if (jmPos == null)
+                    continue;
+
+                List<entry> ent;
+                if (kLookup.TryGetValue(morph.BaseForm, out ent) || rLookup.TryGetValue(morph.BaseForm, out ent))
+                {
+
+                    if (ent.Count != 1)
+                    {
+                        //try to narrow it down by reading
+                        var reading = KanaConverter.KatakanaToHiragana(morph.Reading);
+                        var entriesWithCorrectReading = ent.Where(e => e.r_ele != null && e.r_ele.Any(r => r.reb == reading)).ToList();
+                        if (entriesWithCorrectReading.Count == 0)
+                        {
+                            Console.WriteLine();
+                        }
+                        else
+                        {
+                            ent = entriesWithCorrectReading;
+                        }
+                    }
+
+                    var entriesWithTheCorrectPartOfSpeech = ent.Where(e => e.sense.Any(s => s.pos != null && s.pos.Any(p => p.StartsWith(jmPos)))).ToList();
+
+                    if (entriesWithTheCorrectPartOfSpeech.Count == 1)
+                    {
+                        var n = entriesWithTheCorrectPartOfSpeech[0];
+                        var e = new MyEntry();
+                        e.k_ele = n.k_ele;
+                        e.r_ele = n.r_ele;
+                        e.Meaning = n.sense
+                            .Where(s => s.pos != null && s.pos.Any(p => p.StartsWith(jmPos)))
+                            .SelectMany(s => s.gloss.SelectMany(g => g.Text))
+                            .ToArray();
+                        niceEntries.Add(e);
+                    }
+                    else if (ent.Count > 1)
+                    {
+                        var e = new MyEntry();
+                        e.k_ele = entriesWithTheCorrectPartOfSpeech.SelectMany(n => n.k_ele).ToArray();
+                        e.r_ele = entriesWithTheCorrectPartOfSpeech.SelectMany(n => n.r_ele).ToArray();
+                        e.Meaning = entriesWithTheCorrectPartOfSpeech.SelectMany(n => n.sense)
+                            .Where(s => s.pos != null && s.pos.Any(p => p.StartsWith(jmPos)))
+                            .SelectMany(s => s.gloss.SelectMany(g => g.Text))
+                            .ToArray();
+                        niceEntries.Add(e);
+
+                        Console.WriteLine();
+                        //todo, support multiple meanings in gui
+                    }
+
+                }
+                else
+                {
+                    Console.WriteLine();
+                }
+            }
+
+            lv.ItemsSource = niceEntries;
         }
     }
 }

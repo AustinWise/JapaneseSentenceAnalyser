@@ -36,7 +36,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Austin.MecabSharp">
-      <HintPath>..\..\..\..\GitHub\MecabSharp\MecabSharp\bin\Debug\Austin.MecabSharp.dll</HintPath>
+      <HintPath>..\..\MecabSharp\MecabSharp\bin\Debug\Austin.MecabSharp.dll</HintPath>
     </Reference>
     <Reference Include="JpnKanaConversion">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Microsoft Visual Studio International Feature Pack 2.0\YomiganaFramework\JpnKanaConversion.dll</HintPath>
@@ -114,6 +114,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\TheKana.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
