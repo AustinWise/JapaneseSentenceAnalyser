@@ -2,19 +2,15 @@
 using Microsoft.International.Converters;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace JmDict
 {
@@ -23,7 +19,70 @@ namespace JmDict
     /// </summary>
     public partial class MainWindow : Window
     {
+        JMdict mDic;
         Tagger mTagger = new Tagger();
+        Dictionary<string, List<entry>> kLookup, rLookup;
+        Dictionary<char, char> mKataToHira = new Dictionary<char, char>();
+        Task mLoader;
+
+        public MainWindow()
+        {
+            mLoader = Task.Run(new Action(loadData));
+            InitializeComponent();
+        }
+
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await mLoader;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Failed to load");
+                Application.Current.Shutdown();
+                return;
+            }
+
+            txtInput.Text = string.Empty;
+            txtInput.IsEnabled = true;
+            txtInput.TextChanged += txtInput_TextChanged;
+        }
+
+        private void loadData()
+        {
+            var ser = new XmlSerializer(typeof(JMdict));
+            using (var fs = new FileStream(@"JMdict_e.gz", FileMode.Open, FileAccess.Read))
+            {
+                using (var gz = new GZipStream(fs, CompressionMode.Decompress))
+                {
+                    var settings = new XmlReaderSettings();
+                    settings.DtdProcessing = DtdProcessing.Parse;
+                    using (var reader = XmlReader.Create(gz, settings))
+                    {
+                        mDic = (JMdict)ser.Deserialize(reader);
+                    }
+                }
+            }
+
+
+            foreach (var line in Properties.Resources.TheKana.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (line[0] == '#')
+                    continue;
+                string[] splits = line.Split(',');
+                string romanji = splits[0];
+                string hiragana = splits[1];
+                string katakana = splits[2];
+                mKataToHira.Add(katakana[0], hiragana[0]);
+            }
+
+            kLookup = CreateLookup(e => e.k_ele, k => k.keb);
+            rLookup = CreateLookup(e => e.r_ele, r => fromKataToHira(r.reb));
+
+            //Stats(e => e.k_ele, k => k.keb);
+            //Stats(e => e.r_ele, r => r.reb);
+        }
 
         static string GetJmPartOfSpeach(Node n)
         {
@@ -82,9 +141,6 @@ namespace JmDict
             }
         }
 
-        Dictionary<string, List<entry>> kLookup, rLookup;
-        Dictionary<char, char> mKataToHira = new Dictionary<char, char>();
-
         string fromKataToHira(string maybeKata)
         {
             char[] chars = maybeKata.ToCharArray();
@@ -97,32 +153,10 @@ namespace JmDict
             return new string(chars);
         }
 
-        public MainWindow()
-        {
-            InitializeComponent();
-
-            foreach (var line in Properties.Resources.TheKana.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
-            {
-                if (line[0] == '#')
-                    continue;
-                string[] splits = line.Split(',');
-                string romanji = splits[0];
-                string hiragana = splits[1];
-                string katakana = splits[2];
-                mKataToHira.Add(katakana[0], hiragana[0]);
-            }
-
-            kLookup = CreateLookup(e => e.k_ele, k => k.keb);
-            rLookup = CreateLookup(e => e.r_ele, r => fromKataToHira(r.reb));
-
-            //Stats(e => e.k_ele, k => k.keb);
-            //Stats(e => e.r_ele, r => r.reb);
-        }
-
-        static Dictionary<string, List<entry>> CreateLookup<T>(Func<entry, T[]> getReadings, Func<T, string> getReadingText)
+        Dictionary<string, List<entry>> CreateLookup<T>(Func<entry, T[]> getReadings, Func<T, string> getReadingText)
         {
             var map = new Dictionary<string, List<entry>>();
-            foreach (var e in App.sDic.entry)
+            foreach (var e in mDic.entry)
             {
                 var readings = getReadings(e);
                 if (readings == null)
@@ -139,10 +173,10 @@ namespace JmDict
             return map;
         }
 
-        static void Stats<T>(Func<entry, T[]> getReadings, Func<T, string> getReadingText)
+        void Stats<T>(Func<entry, T[]> getReadings, Func<T, string> getReadingText)
         {
             var map = new Dictionary<string, List<entry>>();
-            foreach (var e in App.sDic.entry)
+            foreach (var e in mDic.entry)
             {
                 if (e.sense.Where(s => s.misc != null && s.misc.Any(m => m.Contains("archaic") || m.Equals("archaism"))).Count() == e.sense.Length)
                     continue;
