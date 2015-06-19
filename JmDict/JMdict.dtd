@@ -1,5 +1,4 @@
-﻿<!DOCTYPE JMdict [
-<!ELEMENT JMdict (entry*)>
+﻿<!ELEMENT JMdict (entry*)>
 <!--                                                                   -->
 <!ELEMENT entry (ent_seq, k_ele*, r_ele+, sense+)>
 	<!-- Entries consist of kanji elements, reading elements, 
@@ -366,4 +365,3 @@ various information fields.
 <!ENTITY zool "zoology term">
 <!ENTITY joc "jocular, humorous term">
 <!ENTITY anat "anatomical term">
-]>
