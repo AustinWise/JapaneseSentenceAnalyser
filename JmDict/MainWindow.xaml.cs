@@ -10,6 +10,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Xml;
+using System.Xml.Linq;
 using System.Xml.Serialization;
 
 namespace JmDict
@@ -51,6 +52,19 @@ namespace JmDict
 
         private void loadData()
         {
+            using (Stream convStream = typeof(KanaConverter).Assembly.GetManifestResourceStream("Microsoft.International.Converters.KatakanaToHiragana.xml"))
+            {
+                var doc = XDocument.Load(convStream);
+                foreach (var conversion in doc.Root.Element("ConversionTable").Elements("Conversion"))
+                {
+                    var input = conversion.Attribute("Input").Value;
+                    var output = conversion.Attribute("Output").Value;
+                    if (input.Length != 1 || output.Length != 1)
+                        continue; //assume dictionary entries are precomposed
+                    mKataToHira.Add(input[0], output[0]);
+                }
+            }
+
             var ser = new XmlSerializer(typeof(JMdict));
             using (var fs = new FileStream(@"JMdict_e.gz", FileMode.Open, FileAccess.Read))
             {
@@ -63,18 +77,6 @@ namespace JmDict
                         mDic = (JMdict)ser.Deserialize(reader);
                     }
                 }
-            }
-
-
-            foreach (var line in Properties.Resources.TheKana.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
-            {
-                if (line[0] == '#')
-                    continue;
-                string[] splits = line.Split(',');
-                string romanji = splits[0];
-                string hiragana = splits[1];
-                string katakana = splits[2];
-                mKataToHira.Add(katakana[0], hiragana[0]);
             }
 
             kLookup = CreateLookup(e => e.k_ele, k => k.keb);
@@ -219,14 +221,14 @@ namespace JmDict
                 if (jmPos == null)
                     continue;
 
-                List<entry> ent;
-                if (kLookup.TryGetValue(morph.BaseForm, out ent) || rLookup.TryGetValue(morph.BaseForm, out ent))
-                {
+                var reading = fromKataToHira(morph.Reading);
 
+                List<entry> ent;
+                if (kLookup.TryGetValue(morph.BaseForm, out ent) || rLookup.TryGetValue(reading, out ent))
+                {
                     if (ent.Count != 1)
                     {
                         //try to narrow it down by reading
-                        var reading = KanaConverter.KatakanaToHiragana(morph.Reading);
                         var entriesWithCorrectReading = ent.Where(e => e.r_ele != null && e.r_ele.Any(r => r.reb == reading)).ToList();
                         if (entriesWithCorrectReading.Count == 0)
                         {
