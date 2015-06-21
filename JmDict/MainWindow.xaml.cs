@@ -126,7 +126,10 @@ namespace JmDict
                             case "マ行":
                                 return "Godan verb with `mu' ending";
                             case "ラ行":
-                                return "Godan verb with `ru' ending";
+                                if (n.ConjugatedForm == "五段・ラ行特殊")
+                                    return "Godan verb - -aru special class";
+                                else
+                                    return "Godan verb with `ru' ending";
                         }
                     }
                     return null;
@@ -252,9 +255,9 @@ namespace JmDict
                     else if (ent.Count > 1)
                     {
                         var e = new MyEntry();
-                        e.k_ele = entriesWithTheCorrectPartOfSpeech.SelectMany(n => n.k_ele).ToArray();
-                        e.r_ele = entriesWithTheCorrectPartOfSpeech.SelectMany(n => n.r_ele).ToArray();
-                        e.Meaning = entriesWithTheCorrectPartOfSpeech.SelectMany(n => n.sense)
+                        e.k_ele = entriesWithTheCorrectPartOfSpeech.SelectMany(n => n.k_ele ?? new k_ele[0]).ToArray();
+                        e.r_ele = entriesWithTheCorrectPartOfSpeech.SelectMany(n => n.r_ele ?? new r_ele[0]).ToArray();
+                        e.Meaning = entriesWithTheCorrectPartOfSpeech.SelectMany(n => n.sense ?? new sense[0])
                             .Where(s => s.pos != null && s.pos.Any(p => p.StartsWith(jmPos)))
                             .SelectMany(s => s.gloss.SelectMany(g => g.Text))
                             .ToArray();
