@@ -98,11 +98,17 @@ namespace JmDict
                     else if (n.PosSub1 == "一般")
                         return "noun (common) (futsuumeishi)";
                     else if (n.PosSub1 == "接尾")
+                    {
+                        if (n.PosSub2 == "助数詞")
+                            return "counter";
                         return "noun, used as a suffix";
+                    }
                     else if (n.PosSub1 == "サ変接続")
                         return "noun or participle which takes the aux. verb suru"; //TODO: need to confirm
                     else if (n.PosSub1 == "形容動詞語幹")
                         return "adjectival nouns or quasi-adjectives (keiyodoshi)";
+                    else if (n.PosSub1 == "数")
+                        return "numeric";
                     return null;
                 case "動詞": //verb
                     if (n.ConjugatedForm == "一段")
