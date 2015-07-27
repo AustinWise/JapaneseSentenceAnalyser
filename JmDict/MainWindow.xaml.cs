@@ -21,13 +21,24 @@ namespace JmDict
     public partial class MainWindow : Window
     {
         JMdict mDic;
-        Tagger mTagger = new Tagger();
+        Tagger mTagger;
         Dictionary<string, List<entry>> kLookup, rLookup;
         Dictionary<char, char> mKataToHira = new Dictionary<char, char>();
         Task mLoader;
 
         public MainWindow()
         {
+            try
+            {
+                mTagger = new Tagger();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Failed to create tagger");
+                App.Current.Shutdown();
+                return;
+            }
+
             mLoader = Task.Run(new Action(loadData));
             InitializeComponent();
         }
